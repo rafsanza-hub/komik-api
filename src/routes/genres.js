@@ -24,4 +24,27 @@ router.get('/', [
   }
 });
 
+// Endpoint untuk daftar komik berdasarkan genre
+router.get('/:genre', [
+  check('source').optional().isIn(Object.keys(sources)),
+  check('page').optional().isInt({ min: 1 }).toInt()
+], async (req, res) => {
+  // Validasi input
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  try {
+    const source = req.query.source || 'komikcast';
+    const genre = req.params.genre;
+    const page = req.query.page || 1;
+    const scraper = require(`../scrapers/${source}`);
+    const comicsByGenre = await scraper.fetchComicsByGenre(genre, page);
+    res.json({ data: { comics: comicsByGenre.comics, pagination: comicsByGenre.pagination, source } });
+  } catch (error) {
+    res.status(500).json({ error: `Failed to fetch comics for genre ${req.params.genre}` });
+  }
+});
+
 module.exports = router;

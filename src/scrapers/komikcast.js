@@ -94,7 +94,7 @@ async function fetchComicDetail(slug) {
     detail.type = $('.komik_info-content-info-type a').text().trim().toLowerCase() || 'No Type';
     detail.totalChapters = $('.komik_info-content-info:contains("Total Chapter:")').text().replace('Total Chapter:', '').trim() || '0';
     detail.updatedOn = $('.komik_info-content-update time').text().trim() || 'No Date';
-    detail.rating = $('.data-rating').attr('data-ratingkomik') || '0';
+    detail.rating = $('.data-rating').attr(' ratingkomik') || '0';
     detail.synopsis = $('.komik_info-description-sinopsis p').text().trim() || 'No Synopsis';
     detail.chapters = [];
     $('.komik_info-chapters-item').each((i, element) => {
@@ -168,7 +168,7 @@ async function fetchPopularManga(url) {
 
     $('.section .serieslist.pop ul li').each((i, element) => {
       const rank = $(element).find('.ctr').text().trim() || 'No Rank';
-      const title = $(element).find('.leftseries h2 a').text().trim() || 'No Title';
+      const title = $(element).find('.leaving h2 a').text().trim() || 'No Title';
       const link = $(element).find('.leftseries h2 a').attr('href') || 'No Link';
       const image = $(element).find('.imgseries img').attr('src') || 'No Image';
       const genres = [];
@@ -246,4 +246,56 @@ async function fetchChapterContent(chapterSlug) {
   }
 }
 
-module.exports = { fetchComicsList, fetchComicDetail, fetchGenres, fetchPopularManga, fetchChapterContent };
+async function fetchComicsByGenre(genre, page = 1) {
+  const url = page === 1 
+    ? `https://komikcast02.com/genres/${genre}/`
+    : `https://komikcast02.com/genres/${genre}/page/${page}/`;
+  const cacheKey = `komikcast:comics-by-genre:${genre}:page-${page}`;
+
+  // Cek cache
+  if (getCache(cacheKey)) {
+    logger.info(`Mengembalikan daftar komik untuk genre ${genre} (page ${page}) dari cache`);
+    return getCache(cacheKey);
+  }
+
+  try {
+    logger.info(`Mengambil daftar komik untuk genre ${genre} (page ${page}): ${url}`);
+    const response = await axios.get(url, { timeout: 10000 });
+    const $ = cheerio.load(response.data);
+    const comicsList = [];
+
+    $('.list-update_item').each((i, element) => {
+      const title = $(element).find('.title').text().trim() || 'No Title';
+      const link = $(element).find('a').attr('href') || 'No Link';
+      const image = $(element).find('.ts-post-image').attr('src') || 'No Image';
+      const type = $(element).find('.type').text().trim().toLowerCase() || 'No Type';
+      const chapter = $(element).find('.chapter').text().trim() || 'No Chapter';
+      const rating = $(element).find('.numscore').text().trim() || '0';
+      // Ambil comicId dari link (setelah /komik/)
+      const comicId = link.split('/komik/')[1]?.replace(/\/$/, '') || 'No ID';
+
+      comicsList.push({ comicId, title, link, image, type, chapter, rating });
+    });
+
+    // Ambil informasi pagination
+    const pagination = {};
+    const currentPage = $('.pagination .page-numbers.current').text().trim() || page.toString();
+    const prevPage = $('.pagination a.prev').attr('href') || null;
+    const nextPage = $('.pagination a.next').attr('href') || null;
+    pagination.currentPage = parseInt(currentPage, 10);
+    pagination.prevPage = prevPage ? parseInt(prevPage.match(/page\/(\d+)/)?.[1] || null, 10) : null;
+    pagination.nextPage = nextPage ? parseInt(nextPage.match(/page\/(\d+)/)?.[1] || null, 10) : null;
+
+    const result = { comics: comicsList, pagination };
+
+    setCache(cacheKey, result, cacheDuration);
+    logger.info(`Daftar komik untuk genre ${genre} (page ${page}, ${comicsList.length} item) berhasil diambil dan disimpan di cache`);
+
+    return result;
+  } catch (error) {
+    logger.error(`Gagal mengambil daftar komik untuk genre ${genre} (page ${page}): ${error.message}`);
+    throw error;
+  }
+}
+
+module.exports = { fetchComicsList, fetchComicDetail, fetchGenres, fetchPopularManga, fetchChapterContent, fetchComicsByGenre };
