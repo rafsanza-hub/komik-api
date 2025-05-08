@@ -42,8 +42,10 @@ async function fetchComicsList(baseUrl, params = {}) {
       const chapter = $(element).find('.chapter').text().trim() || 'No Chapter';
       const rating = $(element).find('.numscore').text().trim() || '0';
       const status = $(element).find('.status').text().trim().toLowerCase() || 'ongoing';
+      // Ambil comicId dari link (setelah /komik/)
+      const comicId = link.split('/komik/')[1]?.replace(/\/$/, '') || 'No ID';
 
-      comicsList.push({ title, link, image, type, chapter, rating, status });
+      comicsList.push({ comicId, title, link, image, type, chapter, rating, status });
     });
 
     setCache(cacheKey, comicsList, cacheDuration);
@@ -78,6 +80,7 @@ async function fetchComicDetail(slug) {
     }
 
     // Ambil data
+    detail.comicId = slug; // Gunakan slug sebagai comicId
     detail.coverImage = $('.komik_info-cover-image img').attr('src') || 'No Image';
     detail.title = $('.komik_info-content-body-title').text().trim() || 'No Title';
     detail.nativeTitle = $('.komik_info-content-native').text().trim() || 'No Native Title';
@@ -95,11 +98,12 @@ async function fetchComicDetail(slug) {
     detail.synopsis = $('.komik_info-description-sinopsis p').text().trim() || 'No Synopsis';
     detail.chapters = [];
     $('.komik_info-chapters-item').each((i, element) => {
-      detail.chapters.push({
-        title: $(element).find('.chapter-link-item').text().trim() || 'No Title',
-        link: $(element).find('.chapter-link-item').attr('href') || 'No Link',
-        releaseTime: $(element).find('.chapter-link-time').text().trim() || 'No Time'
-      });
+      const title = $(element).find('.chapter-link-item').text().trim() || 'No Title';
+      const link = $(element).find('.chapter-link-item').attr('href') || 'No Link';
+      const releaseTime = $(element).find('.chapter-link-time').text().trim() || 'No Time';
+      // Ambil chapterId dari link (setelah /chapter/)
+      const chapterId = link.split('/chapter/')[1]?.replace(/\/$/, '') || 'No ID';
+      detail.chapters.push({ chapterId, title, link, releaseTime });
     });
 
     setCache(cacheKey, detail, cacheDuration);
@@ -169,11 +173,13 @@ async function fetchPopularManga(url) {
       const image = $(element).find('.imgseries img').attr('src') || 'No Image';
       const genres = [];
       $(element).find('.leftseries span').first().find('a').each((j, genreElement) => {
-        genres.push($(element).text().trim());
+        genres.push($(genreElement).text().trim());
       });
       const year = $(element).find('.leftseries span').eq(1).text().trim() || 'No Year';
+      // Ambil comicId dari link (setelah /komik/)
+      const comicId = link.split('/komik/')[1]?.replace(/\/$/, '') || 'No ID';
 
-      popularMangaList.push({ rank, title, link, image, genres, year });
+      popularMangaList.push({ comicId, rank, title, link, image, genres, year });
     });
 
     setCache(cacheKey, popularMangaList, cacheDuration);
@@ -187,7 +193,6 @@ async function fetchPopularManga(url) {
 }
 
 async function fetchChapterContent(chapterSlug) {
-  logger.info(`Mengambil konten chapter: ${chapterSlug}`);
   const url = `https://komikcast02.com/chapter/${chapterSlug}/`;
   const cacheKey = `komikcast:chapter:${url}`;
 
@@ -202,13 +207,14 @@ async function fetchChapterContent(chapterSlug) {
     const response = await axios.get(url, { timeout: 10000 });
     const $ = cheerio.load(response.data);
     const chapter = {};
-    
 
     // Periksa apakah halaman valid
     if (!$('.chapter_body').length) {
       throw new Error('Chapter not found');
     }
 
+    // Ambil chapterId dari chapterSlug
+    chapter.chapterId = chapterSlug;
     // Ambil gambar
     chapter.images = [];
     $('.main-reading-area img').each((i, element) => {
@@ -225,7 +231,9 @@ async function fetchChapterContent(chapterSlug) {
     $('select[name="chapter"] option').each((i, element) => {
       const title = $(element).text().trim() || 'No Title';
       const url = $(element).attr('value') || 'No URL';
-      chapter.chapters.push({ title, url });
+      // Ambil chapterId dari url (setelah /chapter/)
+      const chapterId = url.split('/chapter/')[1]?.replace(/\/$/, '') || 'No ID';
+      chapter.chapters.push({ chapterId, title, url });
     });
 
     setCache(cacheKey, chapter, cacheDuration);
