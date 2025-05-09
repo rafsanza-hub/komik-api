@@ -41,7 +41,7 @@ router.get('/:genre', [
     const page = req.query.page || 1;
     const scraper = require(`../scrapers/${source}`);
     const comicsByGenre = await scraper.fetchComicsByGenre(genre, page);
-    res.json({ data: { comics: comicsByGenre.comics, pagination: comicsByGenre.pagination, source } });
+    res.json({ data: { comicsList: comicsByGenre.comics, pagination: comicsByGenre.pagination, source } });
   } catch (error) {
     res.status(500).json({ error: `Failed to fetch comics for genre ${req.params.genre}` });
   }
