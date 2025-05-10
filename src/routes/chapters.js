@@ -14,6 +14,7 @@ const validateChapterContent = [
 router.get('/:chapterSlug', validateChapterContent, async (req, res) => {
   // Validasi input
   const errors = validationResult(req);
+  
   if (!errors.isEmpty()) {
     return res.status(400).json({ error: 'Invalid chapter slug or source' });
   }

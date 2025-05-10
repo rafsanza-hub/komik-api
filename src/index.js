@@ -1,5 +1,6 @@
 const express = require('express');
 const { logger } = require('./config/logger');
+const cors = require('cors');
 
 // Inisialisasi aplikasi Express
 const app = express();
@@ -13,6 +14,10 @@ app.use((req, res, next) => {
   logger.info(`Request: ${req.method} ${req.url}`, { ip: req.ip });
   next();
 });
+
+app.use(cors({
+  origin: '*', 
+}));
 
 // Mount rute
 app.use('/api/comics', require('./routes/comics'));

@@ -42,7 +42,7 @@ router.get('/', validateComicsList, async (req, res) => {
     const comicsList = await scraper.fetchComicsList(sources[source].baseUrl + sources[source].comicsListUrl, params);
     res.json({ data: { comicsList, page, genres, status, type, orderby, source } });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch comics list' });
+    res.status(500).json({ error: 'Failed to fetch comics list ' + error.message });
   }
 });
 
