@@ -20,7 +20,7 @@ router.get('/', [
     const query = req.query.query;
     const scraper = require(`../scrapers/${source}`);
     const searchResults = await scraper.fetchSearchResults(query);
-    res.json({ data: { results: searchResults, source } });
+    res.json({ data: { comicsList: searchResults, source } });
   } catch (error) {
     res.status(500).json({ error: `Failed to fetch search results for query "${req.query.query}"` });
   }
